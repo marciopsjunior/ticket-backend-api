@@ -13,6 +13,9 @@ public class Ticket {
     private TicketStatus status;
     private LocalDateTime createdAt;
 
+    public Ticket() {
+    }
+
     public Ticket(Long id, String titulo, String descricao, TicketStatus status, LocalDateTime createdAt) {
         this.id = id;
         this.title = titulo;
