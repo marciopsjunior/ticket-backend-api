@@ -41,8 +41,24 @@ public class Ticket {
         return description;
     }
 
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     public void setId(){
         id = ThreadLocalRandom.current().nextLong(1, 10_000_000_000L);;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
     public void setCreatedAt(){
         createdAt = LocalDateTime.now();

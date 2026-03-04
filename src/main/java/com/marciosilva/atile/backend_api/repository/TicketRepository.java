@@ -6,44 +6,48 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.marciosilva.atile.backend_api.enums.TicketStatus;
 import com.marciosilva.atile.backend_api.model.Ticket;
-import org.springframework.stereotype.Repository;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-@Repository
 public class TicketRepository {
 
-    private final File file = new File("src/main/resources/tickets_mock_db.json");
+    private final File file = new File("tickets_mock_db.json");
     private final ObjectMapper mapper;
-    private List<Ticket> tickets;
 
     public TicketRepository() {
         mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
-        tickets = readFromFile();
+
+        if (!file.exists()) {
+            try {
+                file.createNewFile();
+                mapper.writeValue(file, new ArrayList<>());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private List<Ticket> readFromFile() {
         try {
-            if (!file.exists()) {
-                file.createNewFile();
-                mapper.writeValue(file, new ArrayList<>());
+            if (file.length() == 0) {
+                return new ArrayList<>();
             }
-            List<Ticket> list = mapper.readValue(file, new TypeReference<List<Ticket>>() {});
-            return list != null ? list : new ArrayList<>();
+            return mapper.readValue(file, new TypeReference<List<Ticket>>() {});
         } catch (IOException e) {
             e.printStackTrace();
             return new ArrayList<>();
         }
     }
 
-    private void writeToFile() {
+    private void writeToFile(List<Ticket> tickets) {
         try {
             mapper.writerWithDefaultPrettyPrinter().writeValue(file, tickets);
         } catch (IOException e) {
@@ -52,32 +56,50 @@ public class TicketRepository {
     }
 
     public Ticket save(Ticket ticket) {
+        List<Ticket> tickets = readFromFile();
         ticket.setId();
         ticket.setCreatedAt();
+
         tickets.add(ticket);
-        writeToFile();
+        writeToFile(tickets);
+
         return ticket;
     }
 
     public List<Ticket> findAll() {
-        return tickets;
+        return readFromFile();
     }
 
     public Optional<Ticket> findById(Long id) {
-        return tickets.stream().filter(t -> t.getId().equals(id)).findFirst();
-    }
-
-    public void delete(Long id) {
-        tickets.removeIf(t -> t.getId().equals(id));
-        writeToFile();
+        return readFromFile()
+                .stream()
+                .filter(t -> id.equals(t.getId()))
+                .findFirst();
     }
 
     public Ticket updateStatus(Long id, TicketStatus status) {
-        Optional<Ticket> ticketOpt = findById(id);
-        ticketOpt.ifPresent(t -> {
-            t.setStatus(status);
-            writeToFile();
-        });
+        List<Ticket> tickets = readFromFile();
+
+        Optional<Ticket> ticketOpt = tickets.stream()
+                .filter(t -> id.equals(t.getId()))
+                .findFirst();
+
+        ticketOpt.ifPresent(t -> t.setStatus(status));
+
+        writeToFile(tickets);
+
         return ticketOpt.orElse(null);
+    }
+
+    public boolean delete(Long id) {
+        List<Ticket> tickets = readFromFile();
+
+        boolean removed = tickets.removeIf(t -> id.equals(t.getId()));
+
+        if (removed) {
+            writeToFile(tickets);
+        }
+
+        return removed;
     }
 }

@@ -12,7 +12,7 @@ import java.util.Optional;
 
 @Service
 public class TicketService {
-    private static TicketRepository repository;
+    private final TicketRepository repository;
 
     public TicketService(){
         repository = new TicketRepository();
